@@ -1,38 +1,47 @@
-{
-  "cinderella": {
+[
+  {
+    "id": "cinderella",
     "name": "신데렐라",
     "style": "온화하고 다정하며, 희망적인 분위기를 담아야 해."
   },
-  "alice": {
+  {
+    "id": "alice",
     "name": "이상한 나라의 앨리스",
     "style": "호기심이 많고 상상력이 풍부하며, 신비롭고 환상적인 분위기를 담아야 해."
   },
-  "peter_pan": {
+  {
+    "id": "peter_pan",
     "name": "피터 팬",
     "style": "장난기 많고 용감하며, 모험심과 자유로운 분위기를 담아야 해."
   },
-  "snow_white": {
+  {
+    "id": "snow_white",
     "name": "백설 공주",
     "style": "순수하고 친절하며, 따뜻하고 평온한 분위기를 담아야 해."
   },
-  "little_mermaid": {
+  {
+    "id": "little_mermaid",
     "name": "인어공주",
     "style": "꿈을 향한 열정이 가득하며, 감성적이고 로맨틱한 분위기를 담아야 해."
   },
-  "pinocchio": {
+  {
+    "id": "pinocchio",
     "name": "피노키오",
     "style": "호기심이 많고 솔직하며, 교훈적이고 유쾌한 분위기를 담아야 해."
   },
-  "red_riding_hood": {
+  {
+    "id": "red_riding_hood",
     "name": "빨간 모자",
     "style": "명랑하고 씩씩하며, 동화적인 따뜻한 분위기를 담아야 해."
   },
-  "hansel_gretel": {
+  {
+    "id": "hansel_gretel",
     "name": "헨젤과 그레텔",
     "style": "용기 있고 재치 있으며, 모험과 가족애가 담긴 분위기를 담아야 해."
   },
-  "jack_beanstalk": {
+  {
+    "id": "jack_beanstalk",
     "name": "잭과 콩나무",
     "style": "영리하고 대담하며, 모험과 성장의 분위기를 담아야 해."
   }
-}
+]

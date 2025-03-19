@@ -46,5 +46,5 @@ pytest_cache/
 *.tmp
 
 gcp-key.json
-
+.env
 .DS_Store

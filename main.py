@@ -1,37 +1,66 @@
 import asyncio
-from character_loader import load_character
-from conversation import create_conversation_chain
+import os
+import uuid
 
-async def typewriter_effect(text, delay=0.05):
-    for char in text:
-        print(char, end="", flush=True)
-        await asyncio.sleep(delay)
-    print()
+from fastapi import FastAPI, Request,  Query
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse, FileResponse
+from conversation import get_chain, load_chains
+from cachetools import TTLCache
 
-async def main():
-    while True:
-        character_name = input("🎭 대화할 캐릭터를 입력하세요: ")
-        char_data = load_character(character_name)
-        if char_data: break
-        print("❌ 해당 캐릭터 데이터를 찾을 수 없습니다. 다시 입력해주세요.")
+app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-    session_id = "user_1234"  # 고유한 세션 ID
-    conversation_chain = create_conversation_chain(char_data)
+responses = TTLCache(maxsize=100, ttl=600)
 
-    print(f"✨ {char_data['name']}와 대화를 시작합니다. 'exit' 또는 '종료'를 입력하면 종료됩니다. ✨")
+headers = {"Content-Type": "text/event-stream; charset=utf-8"}
 
-    while True:
-        user_input = input("👤: ")
-        if user_input.lower() in ["exit", "종료"]:
-            print(f"{char_data['name']}: 소중한 대화였어요! 언젠가 다시 만나요.")
-            break
+@app.get("/")
+async def serve_index():
+    index_path = os.path.join("static", "index.html")
+    return FileResponse(index_path)
 
-        response = conversation_chain.invoke(
-            {"input": user_input },
-            config={"configurable": {"session_id": session_id}}
-        )
+@app.post("/send/{room_id}")
+async def send_message(room_id: str, request: Request, char_id: str = Query(..., alias="charId")):
+    data = await request.json()
+    user_input = data.get("message", "")
 
-        print(f"{char_data['name']}: ", end="")
-        await typewriter_effect(response)
+    if not user_input: return {"error": "메시지를 입력해주세요."}
+    
+    chain = get_chain(room_id, char_id)
+    
+    response_id = str(uuid.uuid4())
+    responses[response_id] = asyncio.Queue()
 
-asyncio.run(main())
+    async def generate_response():
+        for chunk in chain.stream(
+            { "input": user_input },
+            config={ "configurable": { "session_id": room_id }}
+        ):
+            await responses[response_id].put(chunk)
+        await responses[response_id].put(None)
+
+    asyncio.create_task(generate_response()) 
+    
+    return { "data": response_id }
+
+@app.get("/stream/{response_id}")
+async def stream_chat(response_id: str):
+    if response_id not in responses:
+        return StreamingResponse(iter(["존재하지 않는 응답입니다."]), headers=headers)
+
+    response_queue = responses[response_id]
+
+    async def event_generator():
+        while True:
+            chunk = await response_queue.get()
+            if chunk is None: break 
+            yield f"data: {chunk}\n\n"  
+        responses.pop(response_id)
+        
+    return StreamingResponse(event_generator(), headers=headers)
+
+if __name__ == "__main__":
+    import uvicorn
+    load_chains()
+    uvicorn.run(app, host="0.0.0.0", port=8000)

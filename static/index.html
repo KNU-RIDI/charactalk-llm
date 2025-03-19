@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 캐릭터 채팅</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #chat-box {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ccc;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h2>AI 캐릭터 채팅</h2>
+    <div id="chat-box"></div>
+    
+    <input type="text" id="message-input" placeholder="메시지를 입력하세요..." />
+    <button onclick="sendMessage()">전송</button>
+
+    <script>
+        const roomId = "room_1234";  // 방 ID
+        const charId = "cinderella";  // 캐릭터 이름 (테스트용)
+
+        async function sendMessage() {
+            const messageInput = document.getElementById("message-input");
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // 채팅 박스에 사용자의 메시지 추가
+            const chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML += `<p><strong>👤 사용자:</strong> ${message}</p>`;
+            messageInput.value = "";
+
+            // 서버에 메시지 전송
+            try {
+                const response = await fetch(`/send/${roomId}?charId=${charId}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message })
+                });
+                const data = await response.json();
+
+                if (data.data) {
+                    startStream(data.data);
+                } else {
+                    chatBox.innerHTML += `<p><strong>❌ 오류:</strong> 응답을 받을 수 없습니다.</p>`;
+                }
+            } catch (error) {
+                console.error("전송 오류:", error);
+                chatBox.innerHTML += `<p><strong>❌ 오류:</strong> 서버 요청 실패</p>`;
+            }
+        }
+
+        function startStream(responseId) {
+            const eventSource = new EventSource(`/stream/${responseId}`);
+            const chatBox = document.getElementById("chat-box");
+            let messageContainer = document.createElement("p");
+            messageContainer.innerHTML = "<strong>🤖 AI:</strong> ";
+            chatBox.appendChild(messageContainer);
+
+            let accumulatedText = "";
+            
+            eventSource.onmessage = (event) => {
+                let textChunk = event.data.replace(/^data: /, "").trim();
+                accumulatedText += textChunk;
+                messageContainer.innerHTML = "<strong>🤖 AI:</strong> " + accumulatedText;
+            };
+
+            eventSource.onerror = () => {
+                console.log("SSE 연결 종료");
+                eventSource.close();
+            };
+        }
+    </script>
+</body>
+</html>
