@@ -1,0 +1,50 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+.build/
+dist/
+*.egg-info/
+.installed.cfg
+
+# Virtual environment
+pip-log.txt
+pip-delete-this-directory.txt
+
+# PyInstaller
+*.spec
+
+# Unit test / coverage reports
+.coverage
+.tox/
+.nosetests.xml
+pytest_cache/
+*.cover
+*.py,cover
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# mypy
+.mypy_cache/
+
+# VSCode settings
+.vscode/
+
+# IDEs
+.idea/
+*.iml
+
+# Logs and temp files
+*.log
+*.tmp
+
+gcp-key.json
+
+.DS_Store
