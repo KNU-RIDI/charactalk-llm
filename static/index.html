@@ -46,28 +46,7 @@
             messageInput.value = "";
 
             // 서버에 메시지 전송
-            try {
-                const response = await fetch(`/send/${roomId}?charId=${charId}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message })
-                });
-                const data = await response.json();
-
-                if (data.data) {
-                    startStream(data.data);
-                } else {
-                    chatBox.innerHTML += `<p><strong>❌ 오류:</strong> 응답을 받을 수 없습니다.</p>`;
-                }
-            } catch (error) {
-                console.error("전송 오류:", error);
-                chatBox.innerHTML += `<p><strong>❌ 오류:</strong> 서버 요청 실패</p>`;
-            }
-        }
-
-        function startStream(responseId) {
-            const eventSource = new EventSource(`/stream/${responseId}`);
-            const chatBox = document.getElementById("chat-box");
+            const eventSource = new EventSource(`/generate/${roomId}?charId=${charId}&message=${message}`);
             let messageContainer = document.createElement("p");
             messageContainer.innerHTML = "<strong>🤖 AI:</strong> ";
             chatBox.appendChild(messageContainer);

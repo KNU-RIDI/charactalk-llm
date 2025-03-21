@@ -1,17 +1,12 @@
-import asyncio
 import os
-import uuid
 
-from fastapi import FastAPI, Request,  Query
+from fastapi import FastAPI, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse, FileResponse
 from conversation import get_chain, load_chains
-from cachetools import TTLCache
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-responses = TTLCache(maxsize=100, ttl=600)
 
 headers = {"Content-Type": "text/event-stream; charset=utf-8"}
 
@@ -20,45 +15,27 @@ async def serve_index():
     index_path = os.path.join("static", "index.html")
     return FileResponse(index_path)
 
-@app.post("/send/{room_id}")
-async def send_message(room_id: str, request: Request, char_id: str = Query(..., alias="charId")):
-    data = await request.json()
-    user_input = data.get("message", "")
+def message_format(message):
+    return f"data: {message}\n\n"
 
-    if not user_input: return {"error": "메시지를 입력해주세요."}
+@app.get("/generate/{room_id}")
+async def generate_message(
+    room_id: str, 
+    char_id: str = Query(..., alias="charId"),
+    user_input: str = Query(..., alias="message")
+):
+    if not user_input: return StreamingResponse(message_format("메시지가 없습니다."), headers=headers)
     
     chain = get_chain(room_id, char_id)
-    
-    response_id = str(uuid.uuid4())
-    responses[response_id] = asyncio.Queue()
 
     async def generate_response():
         for chunk in chain.stream(
             { "input": user_input },
             config={ "configurable": { "session_id": room_id }}
         ):
-            await responses[response_id].put(chunk)
-        await responses[response_id].put(None)
-
-    asyncio.create_task(generate_response()) 
+            yield message_format(chunk)
     
-    return { "data": response_id }
-
-@app.get("/stream/{response_id}")
-async def stream_chat(response_id: str):
-    if response_id not in responses:
-        return StreamingResponse(iter(["존재하지 않는 응답입니다."]), headers=headers)
-
-    response_queue = responses[response_id]
-
-    async def event_generator():
-        while True:
-            chunk = await response_queue.get()
-            if chunk is None: break 
-            yield f"data: {chunk}\n\n"  
-        responses.pop(response_id)
-        
-    return StreamingResponse(event_generator(), headers=headers)
+    return StreamingResponse(generate_response(), headers=headers)
 
 if __name__ == "__main__":
     import uvicorn
