@@ -12,6 +12,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 headers = {"Content-Type": "text/event-stream; charset=utf-8"}
 
+def get_local_timestamp():
+    return datetime.utcnow().replace(microsecond=0).isoformat()  # LocalDateTime 대응
 
 def format_chat_stream_response(name: str, token: str, is_final: bool) -> str:
     payload = {
