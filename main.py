@@ -5,7 +5,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from conversation import get_chain, load_chains
 from datetime import datetime
-from more_itertools import peekable  # 설치 필요: pip install more-itertools
+from more_itertools import peekable
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -13,7 +13,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 headers = {"Content-Type": "text/event-stream; charset=utf-8"}
 
 def get_local_timestamp():
-    return datetime.utcnow().replace(microsecond=0).isoformat()  # LocalDateTime 대응
+    return datetime.now().replace(microsecond=0).isoformat()  # LocalDateTime 대응
 
 def format_chat_stream_response(name: str, token: str, is_final: bool) -> str:
     payload = {
