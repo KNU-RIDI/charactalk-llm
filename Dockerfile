@@ -4,10 +4,10 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install --no-cache-dir -r requirements.txt
-
 EXPOSE $PORT
 
 ENV PYTHONUNBUFFERED 1
 
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT"]
+RUN python3 -m pip install --no-cache-dir -r requirements.txt
+
+CMD ["python3", "main.py"]
