@@ -49,7 +49,7 @@ jobs:
           key: ${{ secrets.GCP_SSH_KEY }}
           host: ${{ secrets.GCP_HOST }}
           username: ${{ secrets.GCP_USERNAME }}
-          source: "docker-compose.yml, .env"
+          source: "docker-compose.yml, .env, gcp-key.json"
           target: "/home/charactalk01/"
 
       - name: Run docker image at GCP
