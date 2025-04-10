@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from conversation import get_chain, load_chains
 from datetime import datetime
 from more_itertools import peekable
+from tts import synthesize_streaming
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -13,7 +14,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 headers = {"Content-Type": "text/event-stream; charset=utf-8"}
 
 def get_local_timestamp():
-    return datetime.now().replace(microsecond=0).isoformat()  # LocalDateTime 대응
+    return datetime.now().replace(microsecond=0).isoformat()
 
 def format_chat_stream_response(name: str, token: str, is_final: bool) -> str:
     payload = {
@@ -59,6 +60,25 @@ def generate_message(
             yield format_chat_stream_response("SYSTEM", "Error", True)
 
     return StreamingResponse(generate(), headers=headers)
+
+@app.get("/speech/{room_id}")
+def speech(
+    room_id: str,
+    char_id: str = Query(..., alias="charId"),
+    user_input: str = Query(..., alias="message")
+):
+    print(f"🎯 received: {user_input}, char_id: {char_id}, room_id: {room_id}")
+    
+    chain = get_chain(room_id, char_id)
+
+    def generate():
+        chunks = chain.stream(
+            { "input": user_input },
+            config={ "configurable": { "session_id": room_id }}
+        )
+        yield from synthesize_streaming(chunks)
+
+    return StreamingResponse(generate(), media_type="audio/L16")
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>LINEAR16 PCM 오디오 스트리밍 재생</title>
+</head>
+<body>
+  <h1>LINEAR16 PCM 오디오 스트리밍</h1>
+  <button id="play">재생 시작</button>
+
+  <script>
+    const playButton = document.getElementById("play");
+    const SAMPLE_RATE = 24000;
+    const AUDIO_URL = "http://localhost:8000/speech/1?charId=cinderella&message=안녕하세요";
+
+    playButton.onclick = async () => {
+      const audioCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
+      await startStreaming(audioCtx);
+    };
+
+    async function startStreaming(audioCtx) {
+      const response = await fetch(AUDIO_URL);
+      const reader = response.body.getReader();
+
+      async function processChunk() {
+        const { value: chunk, done } = await reader.read();
+        if (done || !chunk) return;
+
+        const audioBuffer = decodeLinear16ToAudioBuffer(chunk, audioCtx);
+        await playBuffer(audioCtx, audioBuffer);
+
+        processChunk(); // 재귀적으로 다음 chunk 재생
+      }
+
+      processChunk();
+    }
+
+    function decodeLinear16ToAudioBuffer(chunk, audioCtx) {
+      const frameCount = chunk.length / 2;
+      const buffer = audioCtx.createBuffer(1, frameCount, SAMPLE_RATE);
+      const channelData = buffer.getChannelData(0);
+
+      for (let i = 0; i < chunk.length; i += 2) {
+        let sample = chunk[i] | (chunk[i + 1] << 8);
+        if (sample >= 0x8000) sample -= 0x10000; // 음수 처리
+        channelData[i / 2] = sample / 32768.0;   // 정규화
+      }
+
+      return buffer;
+    }
+
+    function playBuffer(audioCtx, buffer) {
+      return new Promise(resolve => {
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioCtx.destination);
+        source.onended = resolve;
+        source.start();
+      });
+    }
+  </script>
+</body>
+</html>
