@@ -16,9 +16,8 @@ headers = {"Content-Type": "text/event-stream; charset=utf-8"}
 def get_local_timestamp():
     return datetime.now().replace(microsecond=0).isoformat()
 
-def format_chat_stream_response(name: str, token: str, is_final: bool) -> str:
+def format_chat_stream_response(token: str, is_final: bool) -> str:
     payload = {
-        "name": name,
         "token": token,
         "isFinal": is_final,
         "timestamp": get_local_timestamp()
@@ -28,21 +27,18 @@ def format_chat_stream_response(name: str, token: str, is_final: bool) -> str:
 @app.get("/generate/{room_id}")
 def generate_message(
     room_id: str,
-    char_id: str = Query(..., alias="charId"),
+    character_id: str = Query(..., alias="characterId"),
     user_input: str = Query(..., alias="message")
 ):
-    print(f"🎯 FastAPI received: {user_input}, char_id: {char_id}, room_id: {room_id}")
-    
     if not user_input:
         return StreamingResponse(
-            iter([format_chat_stream_response("SYSTEM", "메시지가 없습니다.", True)]),
+            iter([format_chat_stream_response("", True)]),
             headers=headers
         )
 
-    chain = get_chain(room_id, char_id)
+    chain = get_chain(room_id, character_id)
 
     def generate():
-        print("🌱 stream 시작")
         try:
             chunks = peekable(chain.stream(
                 {"input": user_input},
@@ -51,25 +47,21 @@ def generate_message(
 
             for chunk in chunks:
                 token = getattr(chunk, "content", str(chunk)).strip()
-                is_final = not chunks.peek(None)  # 다음이 없으면 마지막
-                print(f"🌿 [CHUNK] {token} (isFinal={is_final})")
-                yield format_chat_stream_response(char_id, token, is_final)
+                is_final = not chunks.peek(None)
+                yield format_chat_stream_response(token, is_final)
 
-        except Exception as e:
-            print("🔥 에러 발생:", e)
-            yield format_chat_stream_response("SYSTEM", "Error", True)
+        except Exception as exception:
+            yield format_chat_stream_response("", True)
 
     return StreamingResponse(generate(), headers=headers)
 
 @app.get("/speech/{room_id}")
 def speech(
     room_id: str,
-    char_id: str = Query(..., alias="charId"),
+    character_id: str = Query(..., alias="characterId"),
     user_input: str = Query(..., alias="message")
 ):
-    print(f"🎯 received: {user_input}, char_id: {char_id}, room_id: {room_id}")
-    
-    chain = get_chain(room_id, char_id)
+    chain = get_chain(room_id, character_id)
 
     def generate():
         chunks = chain.stream(

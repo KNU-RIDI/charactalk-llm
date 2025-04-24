@@ -37,7 +37,7 @@ def load_chains():
             history_messages_key="history"
         )
         
-def get_chain(room_id, char_id):
+def get_chain(room_id, character_id):
     if room_id not in sessions:
         sessions[room_id] = ChatMessageHistory()
-    return chains[char_id]
+    return chains[character_id]
