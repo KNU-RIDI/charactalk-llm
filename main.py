@@ -7,6 +7,7 @@ from conversation import get_chain, load_chains
 from datetime import datetime
 from more_itertools import peekable
 from tts import synthesize_streaming
+from emotion import analyze_emotion
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -23,6 +24,10 @@ def format_chat_stream_response(token: str, is_final: bool) -> str:
         "timestamp": get_local_timestamp()
     }
     return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+@app.get("/analyze-emotion")
+def analysis_emotion(user_input: str = Query(..., alias="message")):
+    return { "emotion": analyze_emotion(user_input) }
 
 @app.get("/generate/{room_id}")
 def generate_message(
